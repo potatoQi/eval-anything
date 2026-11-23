@@ -1,0 +1,19 @@
+eval-anything
+
+Terminal-Bench 2.1 comes from harbor-framework/terminal-bench-2-1.
+DeepSWE v1.1 comes from datacurve-ai/deep-swe. The Mini agent configuration is adapted
+for EnvWeaver. Upstream PROVENANCE.md lists the projects used by individual tasks.
+Claw-Eval General comes from claw-eval/claw-eval and claw-eval/Claw-Eval.
+The EnvWeaver packaging and evaluation adapters in this repository are downstream
+adaptations. See the license files under each eval_anything/benchmarks/<benchmark>/assets directory. The upstream source
+archives, fixtures and container images retain their respective licenses.
+
+The Terminal-Bench download digests come from the official astral-sh/uv 0.9.5
+release assets and crates/uv-python/download-metadata.json at that tag.
+
+The small Claw General supplement in eval_anything/benchmarks/claw/assets/fixtures
+is the difference between data/fixtures.tar.gz at dataset revision
+ca978fd82edb77d52f26f4ccf3f9684a8df84341 and the General task files in
+claw-eval/claw-eval at 5680b8b11ff2ee5dd2b07b89086a29a5c5c984d7.
+To reproduce it from those archives, run
+uv run python -m tools.pack_claw_fixtures SOURCE.tar.gz fixtures.tar.gz NEW_DIRECTORY.

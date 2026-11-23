@@ -1,0 +1,16 @@
+.venv/
+.env
+.env.*
+!.env.example
+*.local.json
+.gateway.json
+__pycache__/
+*.py[cod]
+*.egg-info/
+.cache/
+.ruff_cache/
+.pytest_cache/
+outputs/
+dist/
+/build/
+*.docker.tar

@@ -1,0 +1,21 @@
+{
+  "python/20251014/cpython-3.11.14+20251014-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:b59afc432a64df8fdcfeab5bca98e66c7272cd3e6bc3611b9b48996f714ae15a",
+  "python/20251014/cpython-3.11.14+20251014-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:91ab434738647ab45d630aaa02e3808bb516239beeb52f7799c12a12d1557a38",
+  "python/20251014/cpython-3.12.12+20251014-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:d2a6c0d4ceea088f635b309a59d5d700a256656423225f96ddfb71d532adb1aa",
+  "python/20251014/cpython-3.12.12+20251014-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:c74addcd1b033a6e4d60ead3ab47fcc995569027e01d3061c4a934f363c4a0cf",
+  "python/20251014/cpython-3.13.9+20251014-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:baa3d107d17e4328448e30c3c9c83cca0eb41ca7a37c10982e14d46a5c3db07d",
+  "python/20251014/cpython-3.13.9+20251014-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz": "sha256:c0ccda275948c79996e46993c2c5476ff5cca606dee530f1dea712179131b348",
+  "uv/uv-aarch64-unknown-linux-gnu.tar.gz": "sha256:9db0c2f6683099f86bfeea47f4134e915f382512278de95b2a0e625957594ff3",
+  "uv/uv-aarch64-unknown-linux-musl.tar.gz": "sha256:42b9b83933a289fe9c0e48f4973dee49ce0dfb95e19ea0b525ca0dbca3bce71f",
+  "uv/uv-arm-unknown-linux-musleabihf.tar.gz": "sha256:68249598cd76214d7e279a9c3d85d9d0469193c46eda54ad56b1c9bc24a587b4",
+  "uv/uv-armv7-unknown-linux-gnueabihf.tar.gz": "sha256:beebd359fc2700d0af1aaaf8436c7edfc9cb61fe523525df45465bc0b1dd6545",
+  "uv/uv-armv7-unknown-linux-musleabihf.tar.gz": "sha256:6f366dcb0e85ecbc9c247c0c36392820f291f62f3edfb925d099680a8826a87a",
+  "uv/uv-i686-unknown-linux-gnu.tar.gz": "sha256:510c1b579c8f8b52c40bff564c6d8dec8510abe8dd5c75aac787d0f4c80f066e",
+  "uv/uv-i686-unknown-linux-musl.tar.gz": "sha256:37382087159d27c1a3b510d4ac16fd695a050a406e99c5ced9458bdc6c08a3b8",
+  "uv/uv-powerpc64-unknown-linux-gnu.tar.gz": "sha256:c13202a151c201435dfab2331e7ea96e7cd670b0a3772b36d136da64274878fc",
+  "uv/uv-powerpc64le-unknown-linux-gnu.tar.gz": "sha256:17d9ec5324091ed86077a4164eca88cbcbecbb3f06c95730cb8c61fb6a2d7ca8",
+  "uv/uv-riscv64gc-unknown-linux-gnu.tar.gz": "sha256:f1b2ddecb96959b2cc2405bebb006553c94d86948261e179748a1f7b078d3823",
+  "uv/uv-s390x-unknown-linux-gnu.tar.gz": "sha256:bf87e642ea6373c0f0655d42719643cf88d6e27e59da04e332bf7d6e7d3480b8",
+  "uv/uv-x86_64-unknown-linux-gnu.tar.gz": "sha256:2cf10babba653310606f8b49876cfb679928669e7ddaa1fb41fb00ce73e64f66",
+  "uv/uv-x86_64-unknown-linux-musl.tar.gz": "sha256:3665ffb6c429c31ad6c778ac0489b7746e691acf025cf530b3510b2f9b1660ff"
+}
