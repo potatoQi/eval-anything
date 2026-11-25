@@ -1,6 +1,6 @@
 # eval-anything
 
-用 EnvWeaver 运行完整的 Agent benchmark。
+用 EnvWeaver 运行完整的 Agent benchmark。支持 Terminal-Bench 2.1、DeepSWE v1.1、Claw-Eval General 和 [Agents’ Last Exam Docker](eval_anything/benchmarks/last_exam/README.md)。
 
 ```bash
 uv run eval-anything run terminal-bench-2.1 \

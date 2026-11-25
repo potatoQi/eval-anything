@@ -56,24 +56,19 @@ class TerminalBench(HarborBenchmark):
         )
 
     def prepare(self, pool, source, missing, proxy):
-        # Check the five derived images even for a previously materialized pool.
-        images = {}
-        for name in sorted(QEMU | TORCH):
+        derived = QEMU | TORCH
+        index = self.pypi_index or "https://pypi.org/simple"
+
+        def prepare_image(task):
+            return prepared_image(task, proxy, index, self.direct_hosts, self.retries, self.timeout)
+
+        for name in sorted(derived.difference(missing)):
             task = HarborTask(source / "tasks" / name)
-            images[name] = prepared_image(
-                task,
-                proxy,
-                self.pypi_index or "https://pypi.org/simple",
-                self.direct_hosts,
-                self.retries,
-                self.timeout,
-            )
-            if name not in missing:
-                saved = pool.load(task_ref=pool.root / name / "task.json")
-                if saved.task_runtime_ref.image != images[name]:
-                    raise ValueError(
-                        f"{name}: prepared image changed; generate a new pool with a fresh --cache"
-                    )
+            saved = pool.load(task_ref=pool.root / name / "task.json")
+            if prepare_image(task) != saved.task_runtime_ref.image:
+                raise ValueError(
+                    f"{name}: prepared image changed; generate a new pool with a fresh --cache"
+                )
         if not missing:
             return
         if not present(TB_VERIFIER):
@@ -87,6 +82,7 @@ class TerminalBench(HarborBenchmark):
         )
         for name in missing:
             task = HarborTask(source / "tasks" / name)
+            image = prepare_image(task) if name in derived else task.image_id
             if name == "install-windows-3.11":
                 # The image's default CMD starts the web and VNC services via supervisord.
                 del task.resources["command"]
@@ -102,13 +98,13 @@ class TerminalBench(HarborBenchmark):
             if self.pypi_index:
                 env["PIP_INDEX_URL"] = env["UV_DEFAULT_INDEX"] = self.pypi_index
             task.resources["python_prepare_command"] = shlex.join(self.network_command)
-            ref = RuntimeRef("docker", images.get(name, task.image_id), task.resources)
+            ref = RuntimeRef("docker", image, task.resources)
             settings = {"cwd": task.cwd, "timeout": task.verifier["timeout_sec"]}
             if name in TORCH:
                 settings["prepared_grader"] = torch_grader(
                     (task.folder / "tests/test.sh").read_text()
                 )
-                settings["prepared_index"] = self.pypi_index or "https://pypi.org/simple"
+                settings["prepared_index"] = index
             task.save(
                 pool,
                 ref,

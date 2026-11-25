@@ -17,3 +17,7 @@ ca978fd82edb77d52f26f4ccf3f9684a8df84341 and the General task files in
 claw-eval/claw-eval at 5680b8b11ff2ee5dd2b07b89086a29a5c5c984d7.
 To reproduce it from those archives, run
 uv run python -m tools.pack_claw_fixtures SOURCE.tar.gz fixtures.tar.gz NEW_DIRECTORY.
+
+Agents’ Last Exam v1.1 comes from rdi-berkeley/agents-last-exam via the
+potatoQi/agents-last-exam fork. Its source,
+data and images retain their upstream licenses and access conditions.

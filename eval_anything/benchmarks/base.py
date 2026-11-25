@@ -1,5 +1,6 @@
 import fcntl
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 import envweaver as ew
 
@@ -15,6 +16,7 @@ class Benchmark(ABC):
     size: int
     pool_directory = "pool"
     trials = 1
+    harness_defaults: ClassVar[dict] = {}
     fixed_harness = False
     bindings = ()
 
@@ -33,17 +35,24 @@ class Benchmark(ABC):
     def runtime(self, *, output, proxy, config, agent):
         """Configure Eval and return a context providing runtime harness bindings."""
 
+    def resolve_revision(self, saved, proxy):
+        """Return the source commit for this run."""
+        return self.revision
+
+    def fetch_source(self, source, proxy):
+        unpack(
+            f"https://codeload.github.com/{self.repo}/tar.gz/{self.revision}",
+            self.checksum,
+            source,
+            proxy,
+            include=self.includes_source,
+        )
+
     def generate(self, cache, proxy):
         with (cache / "prepare.lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             source = cache / "sources" / self.revision
-            unpack(
-                f"https://codeload.github.com/{self.repo}/tar.gz/{self.revision}",
-                self.checksum,
-                source,
-                proxy,
-                include=self.includes_source,
-            )
+            self.fetch_source(source, proxy)
             names = self.catalog(source)
             if len(names) != self.size or len(set(names)) != self.size:
                 raise ValueError("Incomplete or duplicate upstream task catalog")

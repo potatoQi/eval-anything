@@ -103,7 +103,7 @@ def main():
         "--runtime-proxy",
         type=proxy_url,
         metavar="URL",
-        help="proxy for Terminal-Bench task containers or Claw-Eval real search",
+        help="HTTP(S) proxy for benchmark runtime traffic",
     )
 
     command.add_argument(

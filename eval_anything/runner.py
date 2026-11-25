@@ -46,21 +46,6 @@ def run(args):
     harness = args.harness or benchmark.harness
     cls = agent_class(benchmark, harness)
     out = args.output.resolve()
-    values = env | {k: "${" + k + "}" for k in benchmark.bindings}
-    agent_settings = expand(args.harness_settings, values)
-    eval_cfg = expand(args.eval_settings, env)
-    ew.EvalConfig(**eval_cfg)
-    runtime = benchmark.runtime(
-        output=out, proxy=args.runtime_proxy, config=eval_cfg, agent=agent_settings
-    )
-    fingerprint = {
-        "agent": agent_settings,
-        "eval": eval_cfg,
-        "benchmark": bench_settings,
-        "concurrency": args.concurrency,
-    }
-    if benchmark.pool_directory != "pool":
-        fingerprint["task_pool"] = benchmark.pool_directory
     out.mkdir(parents=True, exist_ok=True, mode=0o700)
     with ExitStack() as stack:
         lock = stack.enter_context((out / ".lock").open("a"))
@@ -71,20 +56,30 @@ def run(args):
         previous = None
         if args.resume:
             previous = json.loads(record.read_text()) if record.is_file() else {}
-            if (
-                previous.get("trials") != benchmark.trials
-                or len(previous.get("tasks", [])) != benchmark.size
-            ):
-                raise ValueError(
-                    "--resume requires a full run with the benchmark's prescribed trial count"
-                )
-        cache = args.cache.resolve() / name / benchmark.revision
-        cache.mkdir(parents=True, exist_ok=True)
-        tasks = benchmark.generate(cache, args.setup_proxy)
+            if previous.get("benchmark") != name or not previous.get("revision"):
+                raise ValueError("--resume requires a matching run.json with a source revision")
+        benchmark.revision = benchmark.resolve_revision(
+            previous["revision"] if args.resume else None, args.setup_proxy
+        )
+        values = env | {k: "${" + k + "}" for k in benchmark.bindings}
+        native = benchmark.harness_defaults.get(harness, {}) | args.harness_settings
+        agent_settings = expand(native, values)
+        eval_cfg = expand(args.eval_settings, env)
+        ew.EvalConfig(**eval_cfg)
+        runtime = benchmark.runtime(
+            output=out, proxy=args.runtime_proxy, config=eval_cfg, agent=agent_settings
+        )
+        fingerprint = {
+            "agent": agent_settings,
+            "eval": eval_cfg,
+            "benchmark": bench_settings,
+            "concurrency": args.concurrency,
+        }
+        if benchmark.pool_directory != "pool":
+            fingerprint["task_pool"] = benchmark.pool_directory
         signature = {
             "benchmark": name,
             "revision": benchmark.revision,
-            "tasks": [t.name for t in tasks],
             "harness": harness,
             "trials": benchmark.trials,
             "settings_sha256": hashlib.sha256(
@@ -92,17 +87,28 @@ def run(args):
             ).hexdigest(),
             "proxy": args.runtime_proxy,
         }
-        if args.resume:
-            if previous != signature:
-                raise ValueError("--resume requires matching run settings and tasks")
-        else:
+
+        def checkpoint():
             tmp = record.with_suffix(".tmp")
             tmp.write_text(json.dumps(signature, indent=2))
             tmp.replace(record)
+
+        if previous is None:
+            checkpoint()
+        elif {k: v for k, v in previous.items() if k != "tasks"} != signature:
+            raise ValueError("--resume requires matching run settings and tasks")
+
+        cache = args.cache.resolve() / name / benchmark.revision
+        cache.mkdir(parents=True, exist_ok=True)
+        tasks = benchmark.generate(cache, args.setup_proxy)
+        signature["tasks"] = [t.name for t in tasks]
+        if previous is not None and "tasks" in previous:
+            if previous["tasks"] != signature["tasks"]:
+                raise ValueError("--resume requires matching run settings and tasks")
+        else:
+            checkpoint()
         bindings = stack.enter_context(runtime)
-        agent = cls(
-            **(expand(args.harness_settings, env | bindings) if bindings else agent_settings)
-        )
+        agent = cls(**(expand(native, env | bindings) if bindings else agent_settings))
         evaluate(tasks, agent, eval_cfg, args.concurrency, benchmark, out, args.resume)
 
 

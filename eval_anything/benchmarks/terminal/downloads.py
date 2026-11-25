@@ -108,50 +108,23 @@ def release_mirror(gateway, client):
 
 class TerminalVerifier(Verifier):
     def run(self, verifier_instance, *, task_instance=None, files=None, env=None):
-        materials = Path(self.entry).parent
-
-        def original():
-            return super(TerminalVerifier, self).run(
-                verifier_instance, task_instance=task_instance, files=files, env=env
-            )
-
-        if (
-            task_instance is None
-            or task_instance.host is not None
-            or task_instance.backend != "docker"
-        ):
-            return original()
         with ExitStack() as stack:
-            try:
-                networks = json.loads(
-                    docker("inspect", "-f", "{{json .NetworkSettings.Networks}}", task_instance.id)
-                )
-                network = next(iter(networks.values())) if len(networks) == 1 else {}
-                gateway, client = network.get("Gateway"), network.get("IPAddress")
-                url = (
-                    stack.enter_context(release_mirror(gateway, client))
-                    if gateway and client
-                    else None
-                )
-            except (OSError, subprocess.CalledProcessError):
-                url = None
-            if not url:
-                return original()
-            grader = Verifier(
-                entry=ASSETS / "grader/run.py",
-                runtime=self.runtime,
-                timeout=self.timeout,
-                required_env=self.required_env,
-            )
-            inputs = [
-                {"source": materials / name, "target": name} for name in ("tests", "settings.json")
-            ]
-            return grader.run(
-                verifier_instance,
-                task_instance=task_instance,
-                files=[*inputs, *(files or [])],
-                env={**(env or {}), "TB_RELEASE_MIRROR": url},
-            )
+            if task_instance and task_instance.host is None and task_instance.backend == "docker":
+                try:
+                    networks = json.loads(
+                        docker(
+                            "inspect", "-f", "{{json .NetworkSettings.Networks}}", task_instance.id
+                        )
+                    )
+                    if len(networks) == 1:
+                        (network,) = networks.values()
+                        gateway, client = network.get("Gateway"), network.get("IPAddress")
+                        if gateway and client:
+                            url = stack.enter_context(release_mirror(gateway, client))
+                            env = {**(env or {}), "TB_RELEASE_MIRROR": url}
+                except (OSError, subprocess.CalledProcessError):
+                    pass
+            return super().run(verifier_instance, task_instance=task_instance, files=files, env=env)
 
 
 def with_download_cache(task):
