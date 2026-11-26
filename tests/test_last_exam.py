@@ -8,16 +8,45 @@ from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import envweaver as ew
 
 from eval_anything.benchmarks.last_exam import LastExamDocker
 from eval_anything.benchmarks.last_exam.execution import DesktopRuntime, DesktopVerifier
-from eval_anything.runner import evaluate, run
+from eval_anything.runner import agent_class, evaluate, run
 
 
 class ExamTests(unittest.TestCase):
+    def test_ale_session_header_is_per_attempt_and_keeps_resume_identity(self):
+        settings = {
+            "extra_generation_kwargs": {
+                "headers": {"x-session-id": "old", "X-Client": "client"},
+                "extra_headers": {"X-SESSION-ID": "old", "X-Trace": "trace"},
+            }
+        }
+        cls = agent_class(LastExamDocker(), "AleClawAgent")
+        agent = cls(options=settings)
+        native = ew.AleClawAgent(options=settings)
+        sessions = set()
+
+        def check_request(attempt, *, output, **kwargs):
+            generation = attempt._options["extra_generation_kwargs"]
+            session = output.update.call_args.kwargs["metadata"]["model_session_id"]
+            self.assertNotIn(session, sessions)
+            sessions.add(session)
+            self.assertEqual(generation["headers"], {"X-Client": "client"})
+            self.assertEqual(
+                generation["extra_headers"], {"X-Trace": "trace", "X-Session-Id": session}
+            )
+
+        with patch.object(ew.AleClawAgent, "run", check_request):
+            for attempt in (agent.new(), agent.new()):
+                attempt.run(goal=[], runtime=None, instance=None, output=Mock(), cwd="/tmp")
+                self.assertEqual(attempt._identity(), native._identity())
+        self.assertEqual(agent.config["options"], settings)
+        self.assertIs(agent_class(LastExamDocker(), "CodexAgent"), ew.CodexAgent)
+
     def test_run_pins_before_setup_and_resume_ignores_branch_updates(self):
         first, second = "1" * 40, "2" * 40
         ref = "refs/heads/standalone-ale-claw"

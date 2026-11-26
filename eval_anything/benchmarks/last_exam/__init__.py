@@ -24,6 +24,18 @@ LIST = "selected_tasks/docker_support.txt"
 DESKTOP = "agentslastexam/ale-ubuntu22-docker:v1.1@sha256:0b223c5042bedfa78f37f17881f6b410aa3d745310b667e5dff62637363c5085"
 
 
+def resolve_desktop():
+    digest = DESKTOP.split("@")[1]
+    # Registry mirrors can store the same pinned manifest under a different repository.
+    images = docker("image", "ls", "--digests", "--no-trunc", "--format", "{{.Digest}} {{.ID}}")
+    for line in images.splitlines():
+        manifest, image_id = line.split()
+        if manifest == digest:
+            return image_id
+    docker("pull", DESKTOP)
+    return docker("image", "inspect", "--format", "{{.Id}}", DESKTOP)
+
+
 class LastExamDocker(Benchmark):
     name = "agents-last-exam-docker"
     harness = "AleClawAgent"
@@ -136,13 +148,7 @@ class LastExamDocker(Benchmark):
         if not self.data.is_dir():
             raise ValueError(f"Expected the extracted v1.1 task data directory: {self.data}")
         controller = self.build_controller(source, proxy)
-        if subprocess.run(
-            ["docker", "image", "inspect", DESKTOP],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode:
-            docker("pull", DESKTOP)
+        self.desktop_image = resolve_desktop()
         if not missing:
             return
         specs = json.loads(
@@ -315,6 +321,7 @@ class LastExamDocker(Benchmark):
             )
             ref = replace(
                 ref,
+                image=self.desktop_image if ref.image == DESKTOP else ref.image,
                 config={
                     **ref.config,
                     "network": self.network,

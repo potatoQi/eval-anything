@@ -43,10 +43,7 @@ class GeneralVerifier(Verifier):
 def for_round(task, output, number, search_settings):
     directory = output / f"round-{number}"
     search = task.metadata["web_search"]
-    previous = output / f"round-{number - 1}" / "web-cache" / task.name
     context = list(task.context)
-    if search and previous.is_dir():
-        context.append({"source": str(previous), "target": WEB_CACHE})
     verifier = GeneralVerifier(
         task.verifier,
         directory / "judge-responses" / task.name,
@@ -54,6 +51,9 @@ def for_round(task, output, number, search_settings):
     )
     setup = task.setup
     if search:
+        previous = output / f"round-{number - 1}" / "web-cache" / task.name
+        if previous.is_dir():
+            context.append({"source": str(previous), "target": WEB_CACHE})
         env = [f"SERP_DEV_KEY={search_settings['api_key']}"]
         if "api_url" in search_settings:
             env.append(f"SERP_API_URL={search_settings['api_url']}")

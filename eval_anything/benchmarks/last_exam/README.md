@@ -14,3 +14,5 @@ uv run --with-editable /path/to/EnvWeaver eval-anything run agents-last-exam-doc
 ```
 
 `--concurrency` 默认 1，按题卡的 CPU、内存需求调整。用原命令加 `--resume` 续跑。题面、初始化和评分使用固定版本的上游代码，参考文件在做题结束后传入。支持部分得分，`summary.json` 的 `mean_score` 是全部 78 题的平均分，有缺失评分时为 `null`；`valid`、`invalid` 和 `mean_valid_score` 可用于查看评分覆盖情况。
+
+使用 `AleClawAgent` 时，每次做题尝试自动生成一个 `X-Session-Id`。支持该请求头的模型网关可以将同题续答路由到同一后端。不同题和整题重试各用新 ID，可通过 Agent 的 `metadata.model_session_id` 核对网关日志。

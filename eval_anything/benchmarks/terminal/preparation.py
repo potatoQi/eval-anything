@@ -34,7 +34,7 @@ def network(apt_mirror, direct_hosts, retries, timeout):
         or not re.fullmatch(r"https?://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._/-]*)?", apt_mirror)
     ):
         raise ValueError("apt_mirror must be an HTTP(S) mirror root without credentials")
-    command = [
+    return [
         "sh",
         "-c",
         (ASSETS / "network.sh").read_text(),
@@ -44,7 +44,6 @@ def network(apt_mirror, direct_hosts, retries, timeout):
         str(timeout),
         *direct_hosts,
     ]
-    return command
 
 
 def torch_grader(script):

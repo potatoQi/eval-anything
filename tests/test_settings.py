@@ -1,12 +1,13 @@
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import envweaver as ew
 
@@ -139,6 +140,38 @@ class SettingsTests(unittest.TestCase):
             self.assertEqual(agent.config["model"]["model"], "Qwen3.8-27B")
             self.assertEqual(agent.config["model"]["context_window"], 262144)
             self.assertEqual(config["verifier_env"]["CLAW_JUDGE_BASE_URL"], "http://judge")
+
+    @unittest.skipUnless(hasattr(ew, "ClawEvalAgent"), "requires Claw SDK")
+    def test_claw_session_header_is_scoped_to_one_solver_attempt(self):
+        with tempfile.TemporaryDirectory() as d:
+            (agent, _), _ = self.invoke(
+                Path(d),
+                CLAW,
+                "--benchmark-settings",
+                CLAW_SETTINGS,
+                "--harness-settings",
+                CLAW_AGENT_SETTINGS,
+            )
+        read_headers = [
+            sys.executable,
+            "-c",
+            'import os; print(os.environ["OPENAI_CUSTOM_HEADERS"])',
+        ]
+        inherited = "X-Client: keep\nx-SESSION-id: stale"
+        sessions = set()
+        with patch.object(ew.ClawEvalAgent, "_command", return_value=read_headers):
+            for attempt in (agent.new(), agent.new()):
+                attempt._python = sys.executable
+                attempt._output = Mock()
+                command = attempt._command("do the task", [])
+                session = attempt._output.update.call_args.kwargs["metadata"]["model_session_id"]
+                headers = subprocess.check_output(
+                    command, env={**os.environ, "OPENAI_CUSTOM_HEADERS": inherited}, text=True
+                ).splitlines()
+                self.assertEqual(headers, ["X-Client: keep", "X-Session-Id: " + session])
+                self.assertNotIn(session, sessions)
+                sessions.add(session)
+        self.assertEqual(agent._identity(), ew.ClawEvalAgent(**agent.config)._identity())
 
     def test_setup_and_runtime_proxy_are_independent(self):
         setup = "http://build.example:8080"

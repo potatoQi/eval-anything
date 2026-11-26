@@ -8,7 +8,7 @@ from contextlib import ExitStack
 
 import envweaver as ew
 
-from .benchmarks import BENCHMARKS
+from .benchmarks import BENCHMARKS, ClawGeneral, LastExamDocker
 
 
 def expand(value, env):
@@ -32,6 +32,14 @@ def agent_class(benchmark, harness):
     cls = getattr(ew, harness, None)
     if not isinstance(cls, type) or not issubclass(cls, ew.Agent) or cls is ew.Agent:
         raise ValueError(f"Installed EnvWeaver does not provide Agent {harness}")
+    if isinstance(benchmark, ClawGeneral):
+        from .benchmarks.claw.agent import ClawEvalAgent
+
+        return ClawEvalAgent
+    if isinstance(benchmark, LastExamDocker) and harness == LastExamDocker.harness:
+        from .benchmarks.last_exam.agent import AleClawAgent
+
+        return AleClawAgent
     return cls
 
 

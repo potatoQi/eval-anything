@@ -2,7 +2,7 @@
 
 ## 参数怎么填
 
-仅支持 `ClawEvalAgent`。
+仅支持 `ClawEvalAgent`。每次做题尝试自动使用独立的 `X-Session-Id`，同题续答复用该 ID，整题重试或下一轮评测会换新 ID。可用 `agent/result.json` 的 `metadata.model_session_id` 核对做题网关日志。
 
 | 参数 | 填法 |
 |---|---|
