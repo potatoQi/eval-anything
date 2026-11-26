@@ -4,10 +4,10 @@
 
 需要本机 Docker、Hugging Face CLI（`hf`）和已获批的 [v1.1 数据包访问权限](https://huggingface.co/datasets/agents-last-exam/agents-last-exam-data-archive)。首次运行自动校验并解包约 39.2 GB 的压缩包、拉取官方桌面镜像并构建评分环境。已用官方脚本解包时，可传 `--benchmark-settings '{"data_dir":"/absolute/path/task-data-v1.1"}'` 复用数据。请使用含明文参考文件的完整私有包。
 
-从 eval-anything 项目目录运行。下面的命令使用本地提供 `AleClawAgent` 的 EnvWeaver 源码。做题模型用 `--harness-settings` 配置，需要模型裁判的题从 `verifier_env` 读取裁判服务配置。
+从 eval-anything 项目目录运行。做题模型用 `--harness-settings` 配置，需要模型裁判的题从 `verifier_env` 读取裁判服务配置。
 
 ```bash
-uv run --with-editable /path/to/EnvWeaver eval-anything run agents-last-exam-docker \
+uv run eval-anything run agents-last-exam-docker \
   --harness-settings '{"model":"openai/YOUR_MODEL","options":{"base_url":"${MODEL_BASE_URL}","api_key":"${MODEL_API_KEY}"}}' \
   --eval-settings '{"verifier_env":{"JUDGE_BASE_URL":"${JUDGE_BASE_URL}","JUDGE_API_KEY":"${JUDGE_API_KEY}"}}' \
   --output outputs/ale-docker

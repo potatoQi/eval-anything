@@ -13,11 +13,6 @@
 
 ## Harness
 
-`--harness` 填当前安装的 EnvWeaver 提供的 Agent 类名，区分大小写。
-
-| EnvWeaver 版本 | 可填写的 Agent 类名 |
-|---|---|
-| PyPI 0.0.2 | `Terminus2Agent`、`MiniSweAgent`、`CodexAgent`、`PiAgent` |
-| 当前开发版 | 除上述四个外，还支持 `ClaudeCodeAgent`、`OpenClawAgent`、`ClawEvalAgent`、`AleClawAgent` |
+`--harness` 填 EnvWeaver 支持的 Agent 类名，区分大小写。省略时使用该 benchmark 的默认 Agent。类名和构造参数见 [EnvWeaver Agent 文档](https://potatoqi.github.io/EnvWeaver/latest/agent/)。
 
 Claw-Eval General 仅接受 `ClawEvalAgent`，该类也仅用于这个 benchmark。

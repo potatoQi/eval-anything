@@ -16,7 +16,7 @@ uv run eval-anything run terminal-bench-2.1 \
   --output outputs/tb
 ```
 
-默认使用 PyPI 上与当前环境兼容的最新稳定版 EnvWeaver。要让宿主机使用本地源码，把示例中的 `uv run` 换成 `uv run --with-editable /path/to/EnvWeaver`。
+默认从 PyPI 安装 EnvWeaver。使用本地源码时，把示例中的 `uv run` 换成 `uv run --with-editable /path/to/EnvWeaver`。
 
 ## CLI 参数
 
@@ -25,7 +25,7 @@ uv run eval-anything run terminal-bench-2.1 \
 | 参数 | 用途与默认值 | 命令片段示例 |
 |---|---|---|
 | `<benchmark>` | 必填，放在 `run` 后。可选值见[Benchmark 名称](docs/cli.md#benchmark)。 | `run terminal-bench-2.1` |
-| `--harness` | 选择做题 Agent，可选值见 [Harness 类名](docs/cli.md#harness)。 | `--harness MiniSweAgent` |
+| `--harness` | 填 EnvWeaver 的 Agent 类名，省略时使用该 benchmark 的默认 Agent。见 [Harness 说明](docs/cli.md#harness)。 | `--harness MiniSweAgent` |
 | `--harness-settings` | 传给所选 Agent 的构造参数，例如模型、服务地址和密钥。 | `--harness-settings '{"model":"openai/Qwen3.8-27B"}'` |
 | `--eval-settings` | 传给 EnvWeaver `EvalConfig` 的参数。 | `--eval-settings '{"max_retries":2}'` |
 | `--benchmark-settings` | Benchmark 专属参数。直接透传给各 Benchmark 适配器 | `--benchmark-settings '{"gateway":{"url":"http://your-gateway:8000/v1","api_key":"your-model-key"}}'` |

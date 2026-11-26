@@ -14,7 +14,7 @@
 | MiniSweAgent 字段 | 填什么 |
 |---|---|
 | `model` | 模型名，如 `openai/Qwen3.8-27B`。省略时由 Mini 的配置决定。 |
-| `version` | mini-swe-agent 的 2.x 版本。省略时使用镜像预装的 `2.4.6`。 |
+| `version` | 填要使用的 mini-swe-agent 2.x 版本，省略时使用镜像预装版本。 |
 | `env` | 沙箱环境变量字典。把 `OPENAI_API_BASE` 和 `OPENAI_API_KEY` 分别设为 `${GATEWAY_URL}` 和 `${GATEWAY_TOKEN}`，由评测程序填入，无需 export。 |
 | `extra_args` | 原生 Mini CLI 参数列表。用 `-c /opt/deepswe/mini.yaml` 加载随题配置，再用 `-c` 指定网关和 Qwen 采样参数。 |
 | `cache` | 是否复用 Agent 安装缓存，默认 `true`。 |
