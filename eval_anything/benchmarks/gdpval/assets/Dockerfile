@@ -25,5 +25,13 @@ RUN cut -d= -f1 /opt/aa/system-packages.txt > /tmp/keep && \
     dpkg-query -W -f='${Package}\n' | grep -Fvx -f /tmp/keep | xargs -r dpkg --purge && \
     rm /tmp/keep
 ENV PATH=/opt/harness/bin:$PATH
+
+# GDPval can route only Brave searches through its per-run gateway.
+RUN python -c 'from importlib.util import find_spec; from pathlib import Path; \
+    web = Path(find_spec("stirrup.tools.web").origin); source = web.read_text(); \
+    url = "\"https://api.search.brave.com/res/v1/web/search\""; \
+    assert source.count(url) == 1, "Unexpected Stirrup search implementation"; \
+    web.write_text(source.replace(url, f"os.environ.get(\"GDPVAL_BRAVE_SEARCH_URL\", {url})"))'
+LABEL eval-anything.gdpval.brave-gateway="1"
 USER user
 WORKDIR /home/user

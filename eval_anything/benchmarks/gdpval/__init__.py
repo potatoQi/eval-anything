@@ -7,6 +7,7 @@ from typing import ClassVar
 import envweaver as ew
 
 from ..base import Benchmark
+from .brave import brave_gateway
 from .data import GOLD, Dataset
 from .submissions import export_run
 
@@ -23,15 +24,21 @@ class GDPval(Benchmark):
     generation_only = True
     harness_defaults: ClassVar[dict] = {"StirrupAgent": {"view_image": True}}
 
-    def __init__(
-        self, *, image="eval-anything/gdpval:2.1", verifier_image=None, brave_api_key=None
-    ):
-        self.image = image
-        self.verifier_image = verifier_image or image
-        self.brave_key = brave_api_key
+    def __init__(self, *, image=None, verifier_image=None, brave_api_key=None):
+        self.brave_keys = []
+        if brave_api_key is not None:
+            keys = brave_api_key if isinstance(brave_api_key, list) else [brave_api_key]
+            if not keys or not all(isinstance(key, str) and key.strip() for key in keys):
+                raise ValueError("brave_api_key requires a nonempty string or list of keys")
+            self.brave_keys = list(dict.fromkeys(keys))
+        default_tag = "2.1-brave" if len(self.brave_keys) > 1 else "2.1"
+        self.image = image or f"eval-anything/gdpval:{default_tag}"
+        self.verifier_image = verifier_image or self.image
         self.pool_directory = (
             "pool-office-v1-"
-            + hashlib.sha256(json.dumps([image, self.verifier_image]).encode()).hexdigest()[:16]
+            + hashlib.sha256(json.dumps([self.image, self.verifier_image]).encode()).hexdigest()[
+                :16
+            ]
         )
 
     def load_source(self, cache, proxy):
@@ -105,12 +112,15 @@ class GDPval(Benchmark):
             if key not in agent:
                 raise ValueError(f"Set {key} for the selected model")
         env = agent.setdefault("env", {})
-        if self.brave_key:
-            env["BRAVE_API_KEY"] = self.brave_key
-        if not env.get("BRAVE_API_KEY"):
-            raise ValueError("GDPval-AA requires brave_api_key or harness env.BRAVE_API_KEY")
         if proxy:
             env.update(HTTP_PROXY=proxy, HTTPS_PROXY=proxy)
+        if len(self.brave_keys) > 1:
+            network = (config.get("task_runtime_config") or {}).get("network") or "bridge"
+            return brave_gateway(output, env, self.brave_keys, network, proxy, self.image)
+        if self.brave_keys:
+            env["BRAVE_API_KEY"] = self.brave_keys[0]
+        elif not env.get("BRAVE_API_KEY"):
+            raise ValueError("GDPval-AA requires brave_api_key or harness env.BRAVE_API_KEY")
         return nullcontext({})
 
     def run_protocol(self, tasks, run_round):

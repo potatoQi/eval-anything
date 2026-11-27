@@ -1,10 +1,15 @@
 import io
 import json
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+from urllib.error import HTTPError
+from urllib.request import ProxyHandler, Request, build_opener
 from xml.etree import ElementTree
 from zipfile import ZipFile
 
@@ -167,6 +172,89 @@ class GDPvalTests(unittest.TestCase):
         self.assertEqual(agent["env"]["BRAVE_API_KEY"], "test")
         with self.assertRaisesRegex(ValueError, "max_turns"):
             GDPval().runtime(output=None, proxy=None, config={}, agent={"max_turns": 1})
+
+    def test_brave_key_settings(self):
+        for invalid in ([], [""], ["first", 123]):
+            with self.assertRaisesRegex(ValueError, "brave_api_key"):
+                GDPval(brave_api_key=invalid)
+        bench = GDPval(brave_api_key=["first", "first"])
+        agent = {"model": "openai/test", "context_window_tokens": 262144}
+        with bench.runtime(output=None, proxy=None, config={}, agent=agent):
+            self.assertEqual(agent["env"], {"BRAVE_API_KEY": "first"})
+
+    def test_brave_gateway_concurrent_search_and_resume(self):
+        bench = GDPval(brave_api_key=["first", "second", "third"])
+        config = {"task_runtime_config": {"network": "host"}}
+        both_in_flight = threading.Barrier(2, timeout=5)
+        calls = []
+
+        def upstream(method, url, *, headers, **kwargs):
+            key = headers["X-Subscription-Token"]
+            query = url.split("?", 1)[1]
+            calls.append((key, query))
+            if key == "first":
+                both_in_flight.wait()
+                code = 402
+            else:
+                code = {"q=exhaust": 402, "q=denied": 403}.get(query, 200)
+            return SimpleNamespace(status=code, data=b"result", headers={})
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("eval_anything.benchmarks.gdpval.brave.docker", return_value="1"),
+            patch("eval_anything.benchmarks.gdpval.brave.urllib3.PoolManager") as http,
+        ):
+            out = Path(directory)
+            http.return_value.request.side_effect = upstream
+
+            @contextmanager
+            def gateway():
+                agent = {"model": "openai/test", "context_window_tokens": 262144}
+                with bench.runtime(output=out, proxy=None, config=config, agent=agent):
+                    env = agent["env"]
+                    self.assertTrue(set(bench.brave_keys).isdisjoint(env.values()))
+
+                    def search(query, token=None):
+                        req = Request(
+                            env["GDPVAL_BRAVE_SEARCH_URL"] + "?q=" + query,
+                            headers={"X-Subscription-Token": token or env["BRAVE_API_KEY"]},
+                        )
+                        with build_opener(ProxyHandler({})).open(req, timeout=8) as r:
+                            return r.read()
+
+                    yield search
+
+            with gateway() as search:
+                with self.assertRaises(HTTPError) as denied:
+                    search("A", "wrong")
+                self.assertEqual(denied.exception.code, 403)
+                self.assertFalse(calls)
+                with ThreadPoolExecutor(2) as pool:
+                    self.assertEqual(list(pool.map(search, ["A", "B"])), [b"result"] * 2)
+                self.assertCountEqual(
+                    calls, [(k, q) for k in ("first", "second") for q in ("q=A", "q=B")]
+                )
+
+            with gateway() as search:
+                calls.clear()
+                self.assertEqual(search("resume"), b"result")
+                with self.assertRaises(HTTPError) as denied:
+                    search("denied")
+                self.assertEqual(denied.exception.code, 403)
+                for _ in range(2):
+                    with self.assertRaises(HTTPError) as exhausted:
+                        search("exhaust")
+                    self.assertEqual(exhausted.exception.code, 402)
+                self.assertEqual(
+                    calls,
+                    [
+                        ("second", "q=resume"),
+                        ("second", "q=denied"),
+                        ("second", "q=exhaust"),
+                        ("third", "q=exhaust"),
+                    ],
+                )
+            self.assertEqual((out / ".brave-index").read_text(), "3")
 
     def test_archived_video_sent_to_native_gemini(self):
         with tempfile.TemporaryDirectory() as tmp:

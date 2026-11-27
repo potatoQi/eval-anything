@@ -5,7 +5,7 @@
 在仓库根目录构建镜像，设置 `BRAVE_API_KEY` 和做题模型的 `MODEL_API_KEY`。安装的 EnvWeaver 需要提供 `StirrupAgent`。使用本地 SDK 时，在 `uv run --extra gdpval` 后加 `--with-editable /path/to/EnvWeaver`。
 
 ```bash
-docker build -t eval-anything/gdpval:2.1 eval_anything/benchmarks/gdpval/assets
+docker build -t eval-anything/gdpval:2.1 -t eval-anything/gdpval:2.1-brave eval_anything/benchmarks/gdpval/assets
 
 uv run --extra gdpval eval-anything run gdpval-aa-v2.1 \
   --benchmark-settings '{"brave_api_key":"${BRAVE_API_KEY}"}' \
@@ -21,6 +21,8 @@ uv run --extra gdpval eval-anything run gdpval-aa-v2.1 \
 用 `context_window_tokens` 指定服务实际启用的上下文窗口。单次输出上限 `max_tokens` 可选，省略时沿用 harness 默认值；若该值超过上下文窗口，请显式调低。模型地址须在容器内可访问。默认使用 Stirrup 0.2.2，最多 250 步，单条命令限时 600 秒，达到上下文窗口的 70% 后压缩。单题默认时限 10800 秒，可用 `--eval-settings` 覆盖。使用已有镜像时，给 `--benchmark-settings` 增加 `image`。
 
 每道题的同一次尝试共用一个 `X-Session-Id`，不同题和重新做题时使用不同 ID。支持该请求头的模型网关可将连续请求路由到同一后端。ID 可在 Agent 结果的 `metadata.model_session_id` 中查看。
+
+单把 Brave Key 由 Stirrup 直接使用。多把 Key 按顺序填写，例如 `--benchmark-settings '{"brave_api_key":["${BRAVE_KEY_1}","${BRAVE_KEY_2}"]}'`，默认使用 `eval-anything/gdpval:2.1-brave` 镜像。多 Key 时，宿主机的 GDPval 搜索网关保管密钥；收到 HTTP 402 就换下一把重发同一查询，所有题共用当前位置，`--resume` 后继续。全部耗尽时搜索返回 402。配置 `--runtime-proxy` 时，代理地址也需能从宿主机访问。
 
 `outputs/qwen/submissions.json` 按题列出交付原件的相对路径。移动时保留整个输出目录。原命令加 `--resume` 可续跑。
 
