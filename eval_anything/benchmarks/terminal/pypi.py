@@ -33,7 +33,7 @@ def simple_page(project, prefix, wheels):
         key = f"wheels/{sha}/{filename}"
         wheels[key] = (url, "sha256:" + sha)
         file["url"] = prefix + quote(key)
-        metadata = file.get("core-metadata", file.get("dist-info-metadata"))
+        metadata = file.get("core-metadata")
         metadata_sha = metadata.get("sha256", "") if isinstance(metadata, dict) else ""
         wheels[key + ".metadata"] = (
             url + ".metadata",
