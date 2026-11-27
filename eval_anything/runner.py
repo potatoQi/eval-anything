@@ -8,7 +8,7 @@ from contextlib import ExitStack
 
 import envweaver as ew
 
-from .benchmarks import BENCHMARKS, ClawGeneral, LastExamDocker
+from .benchmarks import BENCHMARKS, ClawGeneral, GDPval, LastExamDocker
 
 
 def expand(value, env):
@@ -26,9 +26,8 @@ def agent_class(benchmark, harness):
         raise ValueError("harness must be an EnvWeaver Agent class name")
     if benchmark.fixed_harness and harness != benchmark.harness:
         raise ValueError(f"{benchmark.name} requires {benchmark.harness}")
-    for other in BENCHMARKS.values():
-        if other.fixed_harness and harness == other.harness and benchmark.name != other.name:
-            raise ValueError(f"{harness} requires {other.name} tasks")
+    if harness == ClawGeneral.harness and not isinstance(benchmark, ClawGeneral):
+        raise ValueError(f"{harness} requires {ClawGeneral.name} tasks")
     cls = getattr(ew, harness, None)
     if not isinstance(cls, type) or not issubclass(cls, ew.Agent) or cls is ew.Agent:
         raise ValueError(f"Installed EnvWeaver does not provide Agent {harness}")
@@ -36,6 +35,10 @@ def agent_class(benchmark, harness):
         from .benchmarks.claw.agent import ClawEvalAgent
 
         return ClawEvalAgent
+    if isinstance(benchmark, GDPval):
+        from .benchmarks.gdpval.agent import StirrupAgent
+
+        return StirrupAgent
     if isinstance(benchmark, LastExamDocker) and harness == LastExamDocker.harness:
         from .benchmarks.last_exam.agent import AleClawAgent
 
@@ -124,7 +127,7 @@ def evaluate(tasks, agent, eval_cfg, concurrency, benchmark, out, resume):
     valid = invalid = 0
     total_score = 0.0
 
-    def run_round(number):
+    def run_round(number, *, result_value=None):
         nonlocal valid, invalid, total_score
         batches = defaultdict(list)
         for task in benchmark.round_tasks(tasks, out, number):
@@ -149,7 +152,7 @@ def evaluate(tasks, agent, eval_cfg, concurrency, benchmark, out, resume):
                 else:
                     valid += 1
                     total_score += score
-                yield r["name"], v
+                yield r["name"], v if result_value is None else result_value(dest, r)
 
     metrics = benchmark.run_protocol(tasks, run_round)
     result = {
@@ -157,7 +160,11 @@ def evaluate(tasks, agent, eval_cfg, concurrency, benchmark, out, resume):
         "trials_per_task": benchmark.trials,
         "valid": valid,
         "invalid": invalid,
-        "mean_valid_score": total_score / valid if valid else None,
+        **(
+            {}
+            if benchmark.generation_only
+            else {"mean_valid_score": total_score / valid if valid else None}
+        ),
         **metrics,
     }
     text = json.dumps(result, indent=2)

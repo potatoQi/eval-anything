@@ -17,6 +17,7 @@ class Benchmark(ABC):
     pool_directory = "pool"
     trials = 1
     harness_defaults: ClassVar[dict] = {}
+    generation_only = False
     fixed_harness = False
     bindings = ()
 
@@ -48,11 +49,15 @@ class Benchmark(ABC):
             include=self.includes_source,
         )
 
+    def load_source(self, cache, proxy):
+        source = cache / "sources" / self.revision
+        self.fetch_source(source, proxy)
+        return source
+
     def generate(self, cache, proxy):
         with (cache / "prepare.lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            source = cache / "sources" / self.revision
-            self.fetch_source(source, proxy)
+            source = self.load_source(cache, proxy)
             names = self.catalog(source)
             if len(names) != self.size or len(set(names)) != self.size:
                 raise ValueError("Incomplete or duplicate upstream task catalog")

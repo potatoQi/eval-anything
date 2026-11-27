@@ -21,3 +21,6 @@ upgrade-package = ["envweaver"]
 
 [tool.ruff]
 line-length = 100
+
+[project.optional-dependencies]
+gdpval = ["pyarrow>=17"]

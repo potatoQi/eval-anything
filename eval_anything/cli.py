@@ -61,7 +61,9 @@ def concurrency(raw):
 
 def main():
     parser = argparse.ArgumentParser(prog="eval-anything")
-    command = parser.add_subparsers(required=True).add_parser("run")
+    commands = parser.add_subparsers(required=True)
+    command = commands.add_parser("run")
+    command.set_defaults(handler=run)
     command.add_argument("benchmark", choices=BENCHMARKS)
     command.add_argument(
         "--harness", help="EnvWeaver Agent class (defaults to the benchmark preset)"
@@ -109,8 +111,29 @@ def main():
     command.add_argument(
         "--resume", action="store_true", help="continue the matching run in --output"
     )
+    from .benchmarks.gdpval.score import score
+
+    scoring = commands.add_parser("score", help="blind pairwise evaluation of saved submissions")
+    scoring.add_argument("benchmark", choices=("gdpval-aa-v2.1",))
+    scoring.add_argument(
+        "--left", required=True, help="run directory, submissions.json, gpt-5-low or human-expert"
+    )
+    scoring.add_argument("--right", required=True, help="second submission source")
+    scoring.add_argument("--judges", required=True, type=json_object, metavar="JSON|FILE.json")
+    scoring.add_argument("--renderer-image", default="eval-anything/gdpval:2.1")
+    scoring.add_argument("--output", required=True, type=Path)
+    scoring.add_argument("--cache", type=Path, default=Path(".cache/eval-anything"))
+    scoring.add_argument("--setup-proxy", type=proxy_url)
+    scoring.add_argument(
+        "--task", action="append", help="score a task ID; repeat to select several"
+    )
+    scoring.add_argument("--seed", type=int, default=0)
+    scoring.add_argument("--concurrency", type=int, default=1)
+    scoring.add_argument("--resume", action="store_true")
+    scoring.set_defaults(handler=score)
     try:
-        run(parser.parse_args())
+        args = parser.parse_args()
+        args.handler(args)
     except (ValueError, TypeError, KeyError, OSError, subprocess.CalledProcessError) as exc:
         parser.exit(1, f"eval-anything: {exc}\n")
 

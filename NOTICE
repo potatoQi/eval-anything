@@ -21,3 +21,8 @@ uv run python -m tools.pack_claw_fixtures SOURCE.tar.gz fixtures.tar.gz NEW_DIRE
 Agents’ Last Exam v1.1 comes from rdi-berkeley/agents-last-exam via the
 potatoQi/agents-last-exam fork. Its source,
 data and images retain their upstream licenses and access conditions.
+
+GDPval tasks and human deliverables come from openai/gdpval. The public GPT-5
+(low) submissions come from jeqcho/2025-10-16T21-42-02plus00-00_gdpval.
+The generation prompts and environment inventories follow Artificial Analysis'
+published GDPval-AA v2.1 methodology. See the GDPval benchmark README for links.
